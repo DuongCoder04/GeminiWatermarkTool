@@ -65,10 +65,12 @@ void setup_console() {
         return true;
     }
 
-    // Check for explicit --gui flag
+    // Check for explicit GUI flags. --backend=<api> selects the render
+    // backend (D3D11 / Vulkan / OpenGL) and is meaningful only in the GUI,
+    // so its presence implies GUI mode too.
     for (int i = 1; i < argc; ++i) {
         std::string_view arg{argv[i]};
-        if (arg == "--gui" || arg == "-g") {
+        if (arg == "--gui" || arg == "-g" || arg.starts_with("--backend")) {
             return true;
         }
     }

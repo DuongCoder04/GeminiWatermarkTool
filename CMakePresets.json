@@ -65,6 +65,33 @@
       }
     },
     {
+      "name": "windows-x64-Vulkan-Debug",
+      "displayName": "Windows x64 Debug — D3D11 + Vulkan GUI backends",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Debug",
+        "CMAKE_MSVC_RUNTIME_LIBRARY": "MultiThreadedDebug",
+        "BUILD_GUI": "ON",
+        "ENABLE_D3D11": "ON",
+        "ENABLE_VULKAN": "ON",
+        "ENABLE_AI_DENOISE": "ON",
+        "VCPKG_MANIFEST_FEATURES": "gui;d3d11;vulkan;ai-denoise"
+      }
+    },
+    {
+      "name": "windows-x64-Vulkan-Release",
+      "displayName": "Windows x64 Release — D3D11 + Vulkan GUI backends",
+      "inherits": "windows-base",
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_GUI": "ON",
+        "ENABLE_D3D11": "ON",
+        "ENABLE_VULKAN": "ON",
+        "ENABLE_AI_DENOISE": "ON",
+        "VCPKG_MANIFEST_FEATURES": "gui;d3d11;vulkan;ai-denoise"
+      }
+    },
+    {
       "name": "windows-x64-OpenGL-Debug",
       "displayName": "Windows x64 OpenGL Only Debug",
       "inherits": "windows-base",
@@ -213,6 +240,14 @@
     {
       "name": "windows-x64-Release",
       "configurePreset": "windows-x64-Release"
+    },
+    {
+      "name": "windows-x64-Vulkan-Debug",
+      "configurePreset": "windows-x64-Vulkan-Debug"
+    },
+    {
+      "name": "windows-x64-Vulkan-Release",
+      "configurePreset": "windows-x64-Vulkan-Release"
     },
     {
       "name": "windows-x64-OpenGL-Debug",

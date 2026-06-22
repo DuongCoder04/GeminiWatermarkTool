@@ -8,7 +8,7 @@
 #include "gui/backend/render_backend.hpp"
 #include "gui/backend/opengl_backend.hpp"
 
-#if defined(_WIN32)
+#if defined(GWT_HAS_D3D11)
 #include "gui/backend/d3d11_backend.hpp"
 #endif
 
@@ -21,27 +21,48 @@
 namespace gwt::gui {
 
 std::unique_ptr<IRenderBackend> create_backend(BackendType type) {
-    // Auto mode: try backends in order of preference (platform-specific)
+    // Auto mode: platform-specific preference order.
+    //   Windows: D3D11 > Vulkan > OpenGL
+    //   Linux:   Vulkan > OpenGL
+    //   macOS:   OpenGL > Vulkan   (Vulkan needs a user-installed MoltenVK)
     if (type == BackendType::Auto) {
 #if defined(_WIN32)
-        // Windows: prefer D3D11 for better VM/RDP compatibility
+        // D3D11 first: besides good VM/RDP behaviour, it falls back to the
+        // WARP software rasterizer, so the UI still renders with NO GPU --
+        // Vulkan and OpenGL have no such guaranteed software path on Windows.
+#  if defined(GWT_HAS_D3D11)
         if (is_backend_available(BackendType::D3D11)) {
             spdlog::info("Auto-selecting D3D11 backend");
             return std::make_unique<D3D11Backend>();
         }
-        spdlog::debug("D3D11 not available, trying OpenGL");
-#endif
-
-#if defined(GWT_HAS_VULKAN)
-        // Try Vulkan if enabled
+        spdlog::debug("D3D11 unavailable, trying Vulkan/OpenGL");
+#  endif
+#  if defined(GWT_HAS_VULKAN)
         if (is_backend_available(BackendType::Vulkan)) {
             spdlog::info("Auto-selecting Vulkan backend");
             return std::make_unique<VulkanBackend>();
         }
-        spdlog::debug("Vulkan not available, trying OpenGL");
-#endif
-        // Fall back to OpenGL
+        spdlog::debug("Vulkan unavailable, falling back to OpenGL");
+#  endif
         type = BackendType::OpenGL;
+
+#elif defined(__APPLE__)
+        // macOS default is OpenGL; Vulkan (via MoltenVK) isn't present unless
+        // the user installs it, so it stays an explicit opt-in (--backend=vulkan).
+        spdlog::info("Auto-selecting OpenGL backend (macOS default)");
+        type = BackendType::OpenGL;
+
+#else
+        // Linux / other Unix: Vulkan > OpenGL.
+#  if defined(GWT_HAS_VULKAN)
+        if (is_backend_available(BackendType::Vulkan)) {
+            spdlog::info("Auto-selecting Vulkan backend");
+            return std::make_unique<VulkanBackend>();
+        }
+        spdlog::debug("Vulkan unavailable, falling back to OpenGL");
+#  endif
+        type = BackendType::OpenGL;
+#endif
     }
 
     // Create specific backend
@@ -50,7 +71,7 @@ std::unique_ptr<IRenderBackend> create_backend(BackendType type) {
             spdlog::info("Creating OpenGL backend");
             return std::make_unique<OpenGLBackend>();
 
-#if defined(_WIN32)
+#if defined(GWT_HAS_D3D11)
         case BackendType::D3D11:
             spdlog::info("Creating D3D11 backend");
             return std::make_unique<D3D11Backend>();
@@ -74,7 +95,7 @@ bool is_backend_available(BackendType type) noexcept {
             // OpenGL is always available (compiled in)
             return true;
 
-#if defined(_WIN32)
+#if defined(GWT_HAS_D3D11)
         case BackendType::D3D11:
             // Check if D3D11 runtime is available
             return D3D11Backend::is_available();

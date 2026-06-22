@@ -51,6 +51,11 @@
           "default-features": false,
           "features": [ "vulkan-binding" ]
         },
+        {
+          "name": "sdl3",
+          "default-features": false,
+          "features": [ "vulkan" ]
+        },
         "vulkan",
         "vulkan-memory-allocator"
       ]

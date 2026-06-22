@@ -89,7 +89,7 @@ struct TextureDesc {
 
 enum class BackendType {
     OpenGL,
-#if defined(_WIN32)
+#if defined(GWT_HAS_D3D11)
     D3D11,
 #endif
 #if defined(GWT_HAS_VULKAN)
@@ -101,7 +101,7 @@ enum class BackendType {
 [[nodiscard]] constexpr std::string_view to_string(BackendType type) noexcept {
     switch (type) {
         case BackendType::OpenGL: return "OpenGL";
-#if defined(_WIN32)
+#if defined(GWT_HAS_D3D11)
         case BackendType::D3D11:  return "D3D11";
 #endif
 #if defined(GWT_HAS_VULKAN)

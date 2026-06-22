@@ -41,7 +41,7 @@ BackendType parse_backend_arg(int argc, char** argv) {
     for (int i = 1; i < argc; ++i) {
         std::string arg = argv[i];
         if (arg == "--backend=opengl") return BackendType::OpenGL;
-#if defined(_WIN32)
+#if defined(GWT_HAS_D3D11)
         if (arg == "--backend=d3d11") return BackendType::D3D11;
 #endif
 #if defined(GWT_HAS_VULKAN)
