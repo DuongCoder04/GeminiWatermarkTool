@@ -456,7 +456,19 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        body: ${{ steps.tag.outputs.message }}
+        body: |
+          ${{ steps.tag.outputs.message }}
+
+          ---
+          > [!WARNING]
+          > **Antivirus note for `gwt-mini` builds**: the Windows/Linux `gwt-mini-*`
+          > binaries are UPX-compressed to keep them small. Some antivirus engines
+          > generically flag UPX-packed unsigned executables as suspicious — this is a
+          > well-known false positive, not malware. All binaries are built by public
+          > GitHub Actions CI directly from this repository's source; verify downloads
+          > against `SHA256SUMS.txt`. If your antivirus complains, use the full
+          > `GeminiWatermarkTool-*` build (not UPX-packed, no flags), or unpack the
+          > mini build with `upx -d`. See issue #39 for a detailed analysis.
         files: |
           GeminiWatermarkTool-Windows-x64.zip
           GeminiWatermarkTool-Linux-x64.zip
