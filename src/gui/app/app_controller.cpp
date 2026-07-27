@@ -719,8 +719,12 @@ void AppController::process_batch_file(BatchFileResult& result) {
         try {
             DetectionResult det = m_engine->detect_watermark(image, force_size, variant);
             result.confidence = det.confidence;
+            // det.detected uses a fixed internal threshold for logging only;
+            // the user-adjustable slider (m_state.batch.detection_threshold)
+            // must be the sole gate or raising it above that fixed value
+            // becomes a no-op.
             const bool ncc_passes =
-                det.detected || det.confidence >= m_state.batch.detection_threshold;
+                det.confidence >= m_state.batch.detection_threshold;
             if (!ncc_passes) {
                 result.status = BatchFileStatus::Skipped;
                 result.message = fmt::format("No watermark detected ({:.0f}%), skipped",

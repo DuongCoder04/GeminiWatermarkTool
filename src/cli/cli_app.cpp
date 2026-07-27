@@ -393,7 +393,10 @@ void process_single_advanced(
             DetectionResult det = engine.detect_watermark(image, force_size, force_variant);
             confidence = det.confidence;
 
-            if (det.detected || det.confidence >= detection_threshold) {
+            // detection_threshold alone gates the decision; det.detected is a
+            // fixed-threshold label for logging only (see watermark_engine.cpp
+            // process_image for the full rationale).
+            if (det.confidence >= detection_threshold) {
                 active_variant = det.variant;
                 // Standard detection succeeded
                 auto config = get_watermark_config(img_w, img_h, active_variant);
