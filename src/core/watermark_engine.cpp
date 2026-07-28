@@ -518,6 +518,18 @@ DetectionResult WatermarkEngine::detect_one_variant(
 
     result.confidence = static_cast<float>(std::clamp(confidence, 0.0, 1.0));
 
+    // Position-anchored spatial rescue: on busy backgrounds the gradient and
+    // variance stages collapse toward 0 and drag the fused confidence below
+    // the gate even when the spatial NCC -- anchored at the formula position
+    // (+-3px for V2 small) -- is unambiguous. Accept a strong anchored match
+    // on its own. Calibrated against removed/clean corners: highest observed
+    // negative was 0.26 (near-uniform background), positives 0.30+.
+    constexpr double kSpatialRescue = 0.30;
+    if (spatial_score >= kSpatialRescue) {
+        result.confidence = std::max(result.confidence,
+                                     static_cast<float>(spatial_score));
+    }
+
     // Determine if watermark is detected based on confidence threshold
     constexpr float kDetectionThreshold = 0.35f;
     result.detected = (result.confidence >= kDetectionThreshold);
