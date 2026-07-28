@@ -37,10 +37,21 @@ WatermarkPosition v2_small_config_from_dims(int W, int H) {
     const int long_side  = std::max(W, H);
     const int short_side = std::min(W, H);
 
-    // Map the short side back to the canonical large width. Thresholds bisect
-    // the observed canonical heights (540, 559, 572) for a 1024-class small.
+    // Map the output back to the canonical large width.
+    // Half-scale outputs (free-tier 1376/1408/1424-class, issue #40) identify
+    // their canonical directly: twice the long side lands on 2752/2816/2848.
+    // 1024-class outputs are inferred from the short side; thresholds bisect
+    // the observed canonical heights (540, 559, 572).
     double source_long_dim;
-    if (short_side >= 566) {
+    if (long_side > 1100) {
+        const double doubled = 2.0 * long_side;
+        source_long_dim = 2752.0;
+        for (double cand : {2816.0, 2848.0}) {
+            if (std::abs(doubled - cand) < std::abs(doubled - source_long_dim)) {
+                source_long_dim = cand;
+            }
+        }
+    } else if (short_side >= 566) {
         source_long_dim = 2752.0;
     } else if (short_side >= 550) {
         source_long_dim = 2816.0;
@@ -50,13 +61,17 @@ WatermarkPosition v2_small_config_from_dims(int W, int H) {
 
     const double scale = static_cast<double>(long_side) / source_long_dim;
     const int margin = static_cast<int>(std::round(192.0 * scale));
-    // The alpha template stays at 36 (downscaled from the 96 large); the
-    // actual logo on disk is sometimes 35 vs 36 depending on rounding,
-    // but the alpha map matches up either way.
+    // Logo size scales with the canonical source like the margin does.
+    // 1024-class outputs land at ~35-36 px where the canonical 36 template
+    // is known to match either rounding, so keep the validated 36 there.
+    // Larger "small" outputs (e.g. free-tier 1376x768 = exactly half of
+    // canonical 2752x1536) carry a proportionally bigger logo (48 px) with
+    // V2 opacity -- see issue #40.
+    const int ideal = static_cast<int>(std::round(96.0 * scale));
     return WatermarkPosition{
         .margin_right = margin,
         .margin_bottom = margin,
-        .logo_size = 36
+        .logo_size = (ideal <= 40) ? 36 : ideal
     };
 }
 
@@ -258,7 +273,7 @@ void WatermarkEngine::remove_watermark(
     // matched.
     const DetectionResult det = detect_one_variant(image, size, variant);
     const cv::Point pos(det.region.x, det.region.y);
-    const cv::Mat& alpha_map = get_alpha_map(size, variant);
+    const cv::Mat alpha_map = effective_alpha_map(size, variant, image.cols, image.rows);
 
     spdlog::debug("Removing watermark at ({}, {}) with {}x{} alpha map (size: {}, variant: {})",
                   pos.x, pos.y, alpha_map.cols, alpha_map.rows,
@@ -361,7 +376,7 @@ DetectionResult WatermarkEngine::detect_one_variant(
     const WatermarkSize size = force_size.value_or(get_watermark_size(image.cols, image.rows));
     const WatermarkPosition config = get_watermark_config(image.cols, image.rows, variant);
     cv::Point pos = config.get_position(image.cols, image.rows);
-    const cv::Mat& alpha_map = get_alpha_map(size, variant);
+    const cv::Mat alpha_map = effective_alpha_map(size, variant, image.cols, image.rows);
 
     // V2 small position is derived from the inferred canonical source
     // dimensions and accurate to ~1-3 px in most cases. A narrow NCC sweep
@@ -514,8 +529,24 @@ DetectionResult WatermarkEngine::detect_one_variant(
     return result;
 }
 
+cv::Mat WatermarkEngine::effective_alpha_map(WatermarkSize size, WatermarkVariant variant,
+                                             int image_width, int image_height) const {
+    const cv::Mat& base = get_alpha_map(size, variant);
+    // V2 small: the canonical 36x36 template only fits 1024-class outputs.
+    // Newer, larger "small" outputs carry a proportionally scaled logo
+    // (config.logo_size), so interpolate from the 96px large source.
+    if (size == WatermarkSize::Small && variant == WatermarkVariant::V2 && has_v2_) {
+        const WatermarkPosition config =
+            get_watermark_config(image_width, image_height, variant);
+        if (config.logo_size != base.cols) {
+            return create_interpolated_alpha(config.logo_size, config.logo_size, variant);
+        }
+    }
+    return base;
+}
+
 cv::Mat WatermarkEngine::create_interpolated_alpha(int target_width, int target_height,
-                                                    WatermarkVariant variant) {
+                                                    WatermarkVariant variant) const {
     // Use the 96x96 large alpha map of the active profile as source
     // (higher resolution = better quality on resize).
     const cv::Mat& source = get_alpha_map(WatermarkSize::Large, variant);
@@ -569,7 +600,11 @@ void WatermarkEngine::remove_watermark_custom(
                                      pos, logo_value_);
         return;
     }
-    if (region.width == 48 && region.height == 48) {
+    // 48x48 is only canonical for the legacy (V1) profile. Newer free-tier
+    // outputs (1376-class) carry a 48px logo with V2 opacity, so the legacy
+    // fast path applies only when the variant actually resolves to V1;
+    // V2 falls through to the interpolated 96->48 map (issue #40).
+    if (region.width == 48 && region.height == 48 && variant == WatermarkVariant::V1) {
         spdlog::info("Custom region matches 48x48, using legacy-profile small alpha");
         remove_watermark_alpha_blend(image, get_alpha_map(WatermarkSize::Small, WatermarkVariant::V1),
                                      pos, logo_value_);

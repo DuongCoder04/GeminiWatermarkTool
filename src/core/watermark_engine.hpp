@@ -316,7 +316,17 @@ private:
      * Uses bilinear interpolation from the 96x96 alpha map
      */
     cv::Mat create_interpolated_alpha(int target_width, int target_height,
-                                       WatermarkVariant variant);
+                                       WatermarkVariant variant) const;
+
+    /**
+     * Resolve the alpha map to use for (size, variant) on an image of the
+     * given dimensions. For V2 small the canonical template is 36x36
+     * (1024-class outputs); larger "small" outputs (e.g. 1376x768) carry a
+     * proportionally scaled logo, so the template is interpolated from the
+     * 96px large source to config.logo_size.
+     */
+    cv::Mat effective_alpha_map(WatermarkSize size, WatermarkVariant variant,
+                                int image_width, int image_height) const;
 
     // Helpers to initialise alpha maps from cv::Mat captures.
     void init_alpha_maps(const cv::Mat& bg_small, const cv::Mat& bg_large);
