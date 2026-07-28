@@ -9,7 +9,9 @@
 [![Support on Ko-fi](https://img.shields.io/badge/Support-Ko--fi-FF5E5B?logo=ko-fi&logoColor=white)](https://ko-fi.com/allenkoss)
 [![Support via PayPal](https://img.shields.io/badge/Support-PayPal-00457C?logo=paypal&logoColor=white)](https://paypal.me/allenkoss)
 
-🆕 **Gemini 3.5 watermark profile supported, with automatic legacy fallback** (v0.3.1) — the CLI tries the current Gemini 3.5+ profile first; if detection skips, it automatically retries with the legacy (pre-3.5) profile. Disable with `--no-legacy`, or pin legacy directly with `--legacy`. [Details below](#-gemini-35-support--new).
+🆕 **Free-tier half-scale watermarks supported** (v0.3.2) — free Gemini accounts now emit half-scale images (e.g. 1376x768) carrying a 48x48 logo with the current opacity profile. Detection and removal handle them automatically; custom 48x48 regions follow the selected profile instead of always assuming legacy. Detection is also more robust on busy backgrounds, and `--threshold` / the GUI slider are honored above 0.35 (thanks to Gerardo Leiserson, PR #41).
+
+**Gemini 3.5 watermark profile supported, with automatic legacy fallback** (v0.3.1) — the CLI tries the current Gemini 3.5+ profile first; if detection skips, it automatically retries with the legacy (pre-3.5) profile. Disable with `--no-legacy`, or pin legacy directly with `--legacy`. [Details below](#-gemini-35-support--new).
 
 🎬 **[Veo Video Watermark Remover v0.6.1](https://github.com/allenk/VeoWatermarkRemover/releases/latest) is out — full Gemini 3.5 video watermark removal across Windows / Linux / macOS.** Auto-detect for 1080p + 720p (standard and compact diamond variants), **adaptive per-frame alpha** via bisection feedback, **tick-exact transcoder timing**, audio passthrough + AI denoise. Drag-and-drop simple, no cloud, no AI hallucination — just the same reverse alpha blending math, evolved for video. [Details below](#-veo-video-watermark-removal--v061-released).
 
