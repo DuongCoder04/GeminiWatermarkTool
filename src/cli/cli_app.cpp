@@ -283,9 +283,16 @@ void process_single(
         force_variant.value_or(WatermarkVariant::V2) == WatermarkVariant::V2) {
         spdlog::info("Current profile detected nothing on {} -- retrying with legacy profile",
                      gwt::filename_utf8(input));
+        const auto current_attempt = proc_result;
         proc_result = process_image(input, output, remove, engine,
                                     force_size, use_detection, detection_threshold,
                                     WatermarkVariant::V1);
+        // When both attempts skip, report the better-scoring one -- the
+        // legacy retry otherwise masks how close the current profile came
+        // (e.g. showing 1% when the V2 attempt scored 20%).
+        if (proc_result.skipped && current_attempt.confidence > proc_result.confidence) {
+            proc_result = current_attempt;
+        }
     }
 
     if (proc_result.skipped) {
