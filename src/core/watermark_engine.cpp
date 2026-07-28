@@ -1193,8 +1193,11 @@ ProcessResult process_image(
             DetectionResult detection = engine.detect_watermark(image, force_size, force_variant);
             result.confidence = detection.confidence;
 
-            const bool ncc_passes = detection.detected ||
-                                    detection.confidence >= detection_threshold;
+            // The caller-supplied threshold is the sole safety gate here.
+            // `detection.detected` reflects a fixed internal threshold used
+            // for logging/labeling only -- ORing it in would make any
+            // detection_threshold above that fixed value a no-op.
+            const bool ncc_passes = detection.confidence >= detection_threshold;
             if (!ncc_passes) {
                 result.skipped = true;
                 result.success = true;  // Not an error, just skipped
